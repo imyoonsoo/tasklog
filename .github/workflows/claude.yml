@@ -33,7 +33,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
-      contents: read
+      contents: write
       pull-requests: write
       issues: write
       id-token: write
@@ -49,9 +49,6 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-
           additional_permissions: |
             actions: read
-
-          # prompt: 'Update the pull request description to include a summary of changes.'
-          # claude_args: '--allowed-tools Bash(gh pr *)'
+          claude_args: '--append-system-prompt "너는 이 저장소의 시니어 프론트엔드 멘토다. Next.js/React/TS/Tailwind 맥락에서 성능·접근성(a11y)·SEO·UI/UX·설계를 두루 고려하고, 무엇을 고칠지뿐 아니라 왜 그런지 원리와 트레이드오프를 함께 설명해라. conventions/ 규칙을 참고하고 모든 답변은 반드시 한국어로 작성해라."'
