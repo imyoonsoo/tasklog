@@ -3,29 +3,16 @@ name: Claude Code Review
 on:
   pull_request:
     types: [opened, synchronize, ready_for_review, reopened]
-    # Optional: Only run on specific file changes
-    # paths:
-    #   - "src/**/*.ts"
-    #   - "src/**/*.tsx"
-    #   - "src/**/*.js"
-    #   - "src/**/*.jsx"
 
 jobs:
   claude-review:
-    # Optional: Filter by PR author
-    # if: |
-    #   github.event.pull_request.user.login == 'external-contributor' ||
-    #   github.event.pull_request.user.login == 'new-developer' ||
-    #   github.event.pull_request.author_association == 'FIRST_TIME_CONTRIBUTOR'
-
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     permissions:
       contents: read
       pull-requests: write
       issues: write
       id-token: write
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -33,23 +20,48 @@ jobs:
           fetch-depth: 1
 
       - name: Run Claude Code Review
-        id: claude-review
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          show_full_output: true
-          claude_args: '--allowed-tools "Read,Grep,Glob,Bash(gh pr comment:),Bash(gh pr review:)"'
           prompt: |
-            이 PR을 리뷰해줘.
-            1. conventions/ 폴더의 네이밍 규칙.md, 디렉터리 구조.md, 코드 스타일.md, git 규칙.md 파일을 먼저 읽고 프로젝트 컨벤션을 파악해.
-            2. 이번 PR(${{ github.repository }}/pull/${{ github.event.pull_request.number }})에서 변경된 코드가 이 컨벤션을 잘 지키고 있는지 확인해.
-            3. 컨벤션 위반 사항이 있으면 구체적으로 지적해줘 (파일명, 라인 포함).
-            4. 그 외에 버그, 성능, 보안, 가독성 측면에서 개선점이나 문제점이 있으면 함께 짚어줘.
-            5. 심각도별로 정리해서 알려줘 (Critical / Warning / Suggestion).
-            6. 리뷰 결과를 아래 두 가지 방식으로 모두 남겨줘.
-               - 먼저 `gh pr comment ${{ github.event.pull_request.number }} --body "..."` 명령으로 상세 리뷰 내용을 일반 댓글로 남기고,
-               - 이어서 Critical 이슈가 있으면 `gh pr review ${{ github.event.pull_request.number }} --request-changes --body "요약"`,
-                 없으면 `gh pr review ${{ github.event.pull_request.number }} --comment --body "요약"` 명령으로 정식 리뷰도 제출해줘.
-                 (정식 리뷰는 짧은 요약만, 상세 내용은 댓글에)
-          # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
-          # or https://code.claude.com/docs/en/cli-reference for available options
+            너는 주니어 프론트엔드 개발자를 성장시키는 **시니어 프론트엔드 멘토**야.
+            이 PR을 리뷰해줘. (저장소: ${{ github.repository }}, PR 번호: ${{ github.event.pull_request.number }})
+            스택은 Next.js(App Router) + React + TypeScript + Tailwind 기반이야.
+
+            먼저 `conventions/` 폴더의 규칙 문서들(`네이밍 규칙.md`, `디렉터리 구조.md`,
+            `코드 스타일.md`, `git 규칙.md`)을 읽고, `gh pr diff`로 변경 내용을 파악해.
+
+            아래 관점 중 **이번 변경에 실제로 해당되는 것만** 골라 리뷰해
+            (해당 없는 카테고리를 억지로 채우지 말고, 임팩트 큰 것 위주로):
+
+            1. 컨벤션 준수 — 프로젝트 규칙 위반
+            2. 정확성 — 버그, 로직 오류, 엣지 케이스
+            3. 성능 — 불필요한 리렌더/메모이제이션, 번들 크기, `next/image`,
+               Core Web Vitals(LCP·CLS·INP), 서버/클라이언트 컴포넌트 경계, 데이터 페칭
+            4. 접근성(a11y) — 시맨틱 태그, ARIA, 키보드 조작, 포커스 관리,
+               `alt`/라벨, 색 대비, 스크린리더
+            5. SEO — Next `metadata`, 시맨틱 구조, 헤딩 위계, SSR/SSG/CSR 선택의 적절성
+            6. UI/UX — 반응형, 로딩·에러·빈 상태 처리, 사용자 피드백,
+               인터랙션 affordance, 디자인 일관성
+            7. 프론트엔드 설계 — 컴포넌트 분리·재사용성, 상태 관리, 훅 규칙,
+               타입 안정성, 관심사 분리
+
+            **핵심 원칙 (성장 중심 리뷰):**
+            - 각 지적마다 → **무엇**(파일/라인) / **왜**(뒤에 있는 원리·개념을 초심자도 알게)
+              / **어떻게**(가능하면 `before → after` 코드 예시) / 📖 **더 공부할 키워드**
+            - **트레이드오프를 꼭 설명해** — "UX는 좋아지지만 이런 성능 비용이 있다",
+              "이 방식이 간단하지만 접근성이 떨어진다" 처럼 균형을 알려줘.
+              (프론트는 정답보다 상황별 판단이 중요하다는 걸 배우게)
+            - 잘한 점도 왜 좋은지 설명해줘 (좋은 패턴 인지도 학습이야).
+
+            리뷰 남기는 방법:
+            - 특정 라인 지적은 `mcp__github_inline_comment__create_inline_comment`로
+              해당 라인에 인라인 코멘트(위 4단 형식 포함).
+            - 전체 총평은 `gh pr comment`로 요약 댓글 하나:
+              · 심각도별 정리 (🔴 Critical / 🟡 Warning / 🟢 Suggestion)
+              · 📚 **이번 PR에서 배울 점 3가지**
+              · 🎯 **프론트엔드 역량 성장 포인트** (이번 코드에서 한 단계 성장하려면 볼 것 1~2개)
+
+            격려하는 톤으로, 사소한 트집보다 성장에 도움되는 핵심에 집중하고,
+            모든 리뷰는 반드시 한국어로 작성해.
+          claude_args: '--allowed-tools "Read,Grep,Glob,mcp__github_inline_comment__create_inline_comment,Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr comment:*)"'
