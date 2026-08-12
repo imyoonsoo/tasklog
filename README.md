@@ -107,7 +107,7 @@ src/
 
 <div id="convention"></div>
 
-## 📍 컨벤션
+## 🗞 컨벤션
 
 프로젝트 컨벤션은 [`conventions/`](conventions) 폴더의 문서를 참고하세요.
 
