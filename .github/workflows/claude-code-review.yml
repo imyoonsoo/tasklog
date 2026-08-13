@@ -2,7 +2,7 @@ name: Claude Code Review
 
 on:
   pull_request:
-    types: [opened, synchronize, ready_for_review, reopened]
+    types: [opened, ready_for_review, reopened]
 
 jobs:
   claude-review:
@@ -48,7 +48,10 @@ jobs:
 
             **핵심 원칙 (성장 중심 리뷰):**
             - 각 지적마다 → **무엇**(파일/라인) / **왜**(뒤에 있는 원리·개념을 초심자도 알게)
-              / **어떻게**(가능하면 `before → after` 코드 예시) / 📖 **더 공부할 키워드**
+              / **어떻게**(가능하면 `before → after` 코드 예시)
+              / 📖 **더 공부할 자료** — 학습 **키워드**와, 그 개념을 다룬 **공식 문서 링크 1~2개**를 **함께** 줘 (키워드만도 링크만도 아닌 둘 다).
+                MDN·React(react.dev)·Next.js(nextjs.org/docs)·web.dev 등 **URL이 안정적인 공식 출처만**
+                (임의 블로그 링크는 지어낼 수 있으니 피하고), **문서 제목·섹션명도 같이** 적어 검색으로도 찾게 해.
             - **트레이드오프를 꼭 설명해** — "UX는 좋아지지만 이런 성능 비용이 있다",
               "이 방식이 간단하지만 접근성이 떨어진다" 처럼 균형을 알려줘.
               (프론트는 정답보다 상황별 판단이 중요하다는 걸 배우게)
@@ -57,7 +60,10 @@ jobs:
             리뷰 남기는 방법:
             - 특정 라인 지적은 `mcp__github_inline_comment__create_inline_comment`로
               해당 라인에 인라인 코멘트(위 4단 형식 포함).
-            - 전체 총평은 `gh pr comment`로 요약 댓글 하나:
+            - 전체 총평은 `gh pr comment ${{ github.event.pull_request.number }} --edit-last --create-if-none`로
+              요약 댓글 하나에 남겨. `--edit-last`는 봇이 이전에 단 총평 댓글을 수정하고,
+              없으면 `--create-if-none`으로 새로 생성해 → 재리뷰(reopen 등) 시에도 새 댓글이
+              쌓이지 않고 항상 댓글 1개만 갱신되도록:
               · 심각도별 정리 (🔴 Critical / 🟡 Warning / 🟢 Suggestion)
               · 📚 **이번 PR에서 배울 점 3가지**
               · 🎯 **프론트엔드 역량 성장 포인트** (이번 코드에서 한 단계 성장하려면 볼 것 1~2개)
