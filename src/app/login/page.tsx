@@ -50,7 +50,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex h-screen items-center justify-center px-6 xl:gap-x-40">
+    <div className="flex min-h-screen items-center justify-center px-6 xl:gap-x-40">
       <AuthForm type="login" onSubmit={handleSubmit}>
         <Input errorMessage={emailError}>
           <Label htmlFor="email">아이디</Label>

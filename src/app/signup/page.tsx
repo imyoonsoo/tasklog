@@ -99,7 +99,7 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="flex h-screen items-center justify-center px-6">
+    <div className="flex min-h-screen items-center justify-center px-6 py-24">
       <AuthForm type="signup" onSubmit={handleSubmit}>
         <Input errorMessage={emailError}>
           <Label htmlFor="email">이메일</Label>
