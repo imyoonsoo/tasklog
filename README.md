@@ -14,34 +14,41 @@ Tasklog는 대시보드 기반의 칸반 스타일 할 일 관리 서비스입�
 
 ## 📍 목차
 
-- [프로젝트 기간 & 배포링크](#info)
+- [개요](#overview)
 - [주요 기능](#features)
 - [기술 스택](#stack)
+- [시스템 아키텍처](#architecture)
 - [코드 품질](#quality)
 - [프로젝트 구조](#structure)
+- [시작하기](#getting-started)
 - [컨벤션](#convention)
 
 ---
 
-<div id="info"></div>
+<div id="overview"></div>
 
-## 📅 프로젝트 기간 & 배포링크
+## 📋 개요
 
-- **진행 기간**: 2026년 4월 20일 ~ 2026년 5월 7일
+| 구분                    | 개발기간             | 내용                                                                                                                      |
+| ----------------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| **원본 팀 프로젝트**    | 2026.04.20 ~ 05.07   | 5인 팀 · 담당: 칼럼 수정 / 삭제 페이지 · 공통 컴포넌트(Button · DeleteAlertModal · 프로필 변경) 및 브라우저 자동완성 대응 |
+| **Fork 이후 개인 작업** | 2026.05.07 ~ 진행 중 | 리팩토링 · 성능 최적화 · 기능 확장 진행 중                                                                                |
+
 - [**Vercel 배포**](https://tasklog-imyoonsoo.vercel.app)
 
 <br>
 
 <div id="features"></div>
 
-## 🔌 주요 기능
+## ✨ 주요 기능
 
-- **대시보드 관리** — 대시보드 생성, 수정, 삭제 및 관리
-- **칸반보드** — 컬럼 및 카드 CRUD, 드래그 앤 드롭을 통한 상태별 업무 관리
-- **댓글** — 업무 카드별 실시간 댓글 작성 및 피드백
+- **대시보드 관리** — 대시보드 생성, 수정, 삭제 및 색상 지정
+- **칸반보드** — 컬럼 및 카드 CRUD, 컬럼 단위 업무 상태 관리 (모바일은 탭 전환)
+- **댓글** — 업무 카드별 댓글 작성 · 수정 · 삭제
 - **팀원 초대 및 관리** — 이메일 기반 대시보드 초대, 멤버 권한 및 목록 관리
 - **인증** — 로그인/회원가입, 계정 설정 및 비밀번호 변경
 - **마이페이지** — 참여 중인 대시보드 관리 및 초대 수락/거절 목록 확인
+- **모달 라우팅** — 병렬 라우트(`@modal`)와 인터셉팅 라우트로 구현. 카드 상세를 모달로 열어도 **URL이 유지되어 새로고침·공유 시 전체 페이지로 정상 진입**합니다
 
 <br>
 
@@ -51,13 +58,45 @@ Tasklog는 대시보드 기반의 칸반 스타일 할 일 관리 서비스입�
 
 | Category         | Tech                                  |
 | :--------------- | :------------------------------------ |
-| **Framework**    | Next.js (App Router)                  |
+| **Framework**    | Next.js 16 (App Router)               |
 | **Library**      | React 19                              |
 | **Language**     | TypeScript                            |
 | **Styling**      | Tailwind CSS v4                       |
 | **Server State** | TanStack Query                        |
 | **HTTP Client**  | Fetch                                 |
+| **Auth**         | httpOnly 쿠키 + Server Actions        |
 | **Code Quality** | ESLint, Prettier, Husky (lint-staged) |
+
+<br>
+
+<div id="architecture"></div>
+
+## 🏗️ 시스템 아키텍처
+
+백엔드 REST API는 외부에서 제공되며, 이 저장소는 프론트엔드를 담당합니다.
+다만 브라우저가 API를 직접 호출하지 않고, **Next.js 서버가 인증과 API 호출을 전담하는 구조**입니다.
+
+```mermaid
+graph TD
+    B["브라우저 · React 19<br/>TanStack Query 캐싱"]
+
+    subgraph NEXT["Next.js 서버 (App Router)"]
+        MW["proxy.ts<br/>accessToken 쿠키 검사 · 라우트 가드"]
+        RSC["Server Component / Server Action<br/>src/actions/*.ts"]
+        D["src/api/data.ts<br/>도메인별 엔드포인트 정의"]
+        F["src/api/fetch.ts<br/>cookies()에서 토큰 → Bearer 주입"]
+    end
+
+    API["Taskify REST API"]
+    S3["AWS S3 · 이미지"]
+
+    B -->|"페이지 요청"| MW
+    B -->|"Server Action 호출"| RSC
+    RSC --> D
+    D --> F
+    F -->|"Authorization: Bearer"| API
+    API --> S3
+```
 
 <br>
 
@@ -81,7 +120,7 @@ src/
 ├── actions/       # 서버 액션 (auth, comment, dashboard-edit, setting, revalidate)
 ├── api/           # API 클라이언트 및 데이터 페칭 (fetch, data)
 ├── app/           # App Router 페이지 및 레이아웃
-│   ├── @modal/    # 병렬 라우트 모달 (account-setting, column-modify, new-dashboard)
+│   ├── @modal/    # 병렬 라우트 모달 + (...)card 인터셉팅 라우트
 │   ├── card/[cardId]/
 │   ├── dashboard/[id]/
 │   ├── login/
@@ -95,12 +134,29 @@ src/
 │   └── TaskDetail/Comment/
 ├── constants/     # 상수 (colors, Auth)
 ├── contexts/      # React Context (SideMenuContext)
-├── feature/       # 도메인별 기능 단위 모듈 (dashboard, login, mydashboard, mypage, signup)
 ├── hooks/         # 공통 커스텀 훅 (useAuth, useCards, useClickOutside)
 ├── lib/           # 라이브러리 유틸 (cn 등)
 ├── providers/     # 전역 Provider (QueryProvider)
 ├── types/         # 타입 정의 (api, images, svgProps)
 └── utils/         # 유틸 함수 (color, dashboard, date, validation)
+```
+
+<br>
+
+<div id="getting-started"></div>
+
+## 🚀 시작하기
+
+```bash
+npm install
+npm run dev      # 개발 서버
+npm run build    # 프로덕션 빌드
+```
+
+프로젝트 루트에 `.env.local`을 만들고 아래 값을 채워주세요.
+
+```bash
+NEXT_PUBLIC_BASE_URL=    # 백엔드 REST API 주소
 ```
 
 <br>
