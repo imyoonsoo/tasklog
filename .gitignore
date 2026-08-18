@@ -45,8 +45,6 @@ next-env.d.ts
 /notion_response.json
 
 # editor
-.vscode/*
-!.vscode/extensions.json
-!.vscode/settings.json
+.vscode
 .idea
 .DS_Store
