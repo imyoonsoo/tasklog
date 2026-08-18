@@ -40,6 +40,13 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# 코드리뷰 워크플로우가 노션 전송용으로 잠깐 만드는 파일
+# notion
 /notion_review.json
 /notion_response.json
+
+# editor
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea
+.DS_Store
